@@ -88,16 +88,16 @@ pipeline {
    */
   }
  }
-}
 
  post {
   failure {
    script {
     telegram.sendTelegram("Build failed for ${getBuildName()}\n" +
-     "Checkout Jenkins console for more information. If you are not a developer simply ignore this message.")
+            "Checkout Jenkins console for more information. If you are not a developer simply ignore this message.")
    }
   }
  }
+}
 
 def getBuildName() {
  "${BUILD_NUMBER}_$appName:${commit}"
