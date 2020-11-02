@@ -99,8 +99,6 @@ pipeline {
   }
  }
 
-}
-
 def getBuildName() {
  "${BUILD_NUMBER}_$appName:${commit}"
 }
