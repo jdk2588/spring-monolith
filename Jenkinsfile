@@ -1,21 +1,23 @@
+#!/usr/bin/env groovy
+
 pipeline {
  environment {
   appName = "monolith"
   registry = "jdk2588/monolith"
   registryCredential = "docker"
   projectPath = "/jenkins/data/workspace/ftgo-monolith"
-  commit = "${GIT_COMMIT.substring(0,8)}"
+  commit = "${GIT_COMMIT.substring(0, 8)}"
  }
 
  agent any
 
  parameters {
- stages {
-  stage('Basic Information') {
-   steps {
-    sh "echo ${params.RELEASE_TAG} ${commit}"
+  stages {
+   stage('Basic Information') {
+    steps {
+     sh "echo ${params.RELEASE_TAG} ${commit}"
+    }
    }
-  }
 
 /*
   stage('Check Lint') {
@@ -25,55 +27,55 @@ pipeline {
   }
 */
 
-  stage('Build and test') {
-   steps {
-    script {
-     sh "./build-and-test-all.sh"
-     dockerImage = docker.build "ftgo-application $registry:${commit}"
+   stage('Build and test') {
+    steps {
+     script {
+      sh "./build-and-test-all.sh"
+      dockerImage = docker.build "ftgo-application $registry:${commit}"
+     }
     }
    }
-  }
 
-  stage('Run Tests') {
-   steps {
-    sh "docker run -v $projectPath/reports:/app/reports  --rm --network='host' $registry:${commit} python martor_demo/manage.py test"
+   stage('Run Tests') {
+    steps {
+     sh "docker run -v $projectPath/reports:/app/reports  --rm --network='host' $registry:${commit} python martor_demo/manage.py test"
+    }
    }
-  }
 
-  stage('Push Image') {
-   steps {
-    script {
-     if (isMaster()) {
-      docker.withRegistry("", registryCredential) {
-       dockerImage.push()
+   stage('Push Image') {
+    steps {
+     script {
+      if (isMaster()) {
+       docker.withRegistry("", registryCredential) {
+        dockerImage.push()
+       }
       }
      }
     }
    }
-  }
 
-  stage('Notify Telegram') {
-   steps() {
-    script {
-     if (isMaster()) {
-      telegram.sendTelegram("Build successful for ${getBuildName()}\n" +
-              "image $registry:${params.RELEASE_TAG} is pushed to DockerHub and ready to be deployed")
+   stage('Notify Telegram') {
+    steps() {
+     script {
+      if (isMaster()) {
+       telegram.sendTelegram("Build successful for ${getBuildName()}\n" +
+               "image $registry:${params.RELEASE_TAG} is pushed to DockerHub and ready to be deployed")
+      }
      }
     }
    }
-  }
 
-  stage('Garbage Collection') {
-   steps {
-    script {
-     if (isMaster()) {
-      sh "docker rmi $registry:${commit}"
+   stage('Garbage Collection') {
+    steps {
+     script {
+      if (isMaster()) {
+       sh "docker rmi $registry:${commit}"
+      }
      }
     }
    }
-  }
 
-  /*
+   /*
   stage ('Deploy') {
       steps {
        script {
@@ -84,8 +86,9 @@ pipeline {
     }
   }
    */
+  }
  }
- }
+}
 
  post {
   failure {
