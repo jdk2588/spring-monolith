@@ -30,8 +30,8 @@ pipeline {
   stage('Build and test') {
    steps {
     script {
-      sh "./build-and-test-all.sh"
-      dockerImage = docker.build "ftgo-application $registry:${commit}"
+     sh "./build-and-test-all.sh"
+     dockerImage = docker.build "ftgo-application $registry:${commit}"
     }
    }
   }
@@ -47,7 +47,7 @@ pipeline {
     script {
      if (isMaster()) {
       docker.withRegistry("", registryCredential) {
-      dockerImage.push()
+       dockerImage.push()
       }
      }
     }
@@ -59,7 +59,7 @@ pipeline {
     script {
      if (isMaster()) {
       telegram.sendTelegram("Build successful for ${getBuildName()}\n" +
-      "image $registry:${params.RELEASE_TAG} is pushed to DockerHub and ready to be deployed")
+              "image $registry:${params.RELEASE_TAG} is pushed to DockerHub and ready to be deployed")
      }
     }
    }
@@ -68,9 +68,9 @@ pipeline {
   stage('Garbage Collection') {
    steps {
     script {
-    	if (isMaster()) {
-      	 sh "docker rmi $registry:${commit}"
-    	}
+     if (isMaster()) {
+      sh "docker rmi $registry:${commit}"
+     }
     }
    }
   }
@@ -86,7 +86,7 @@ pipeline {
     }
   }
    */
-
+ }
  }
 
  post {
