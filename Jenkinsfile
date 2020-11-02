@@ -11,7 +11,6 @@ pipeline {
 
  agent any
 
- parameters {
   stages {
    stage('Basic Information') {
     steps {
@@ -87,7 +86,7 @@ pipeline {
   }
    */
   }
- }
+
 
  post {
   failure {
