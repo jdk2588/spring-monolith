@@ -11,4 +11,3 @@ fi
 ${DOCKER_COMPOSE?} down --remove-orphans -v
 
 ./gradlew $* integrationTest
-
