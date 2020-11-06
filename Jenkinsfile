@@ -5,7 +5,6 @@ pipeline {
   appName = "monolith"
   registry = "jdk2588/monolith"
   registryCredential = "docker"
-  projectPath = "/home/vagrant/jenkins/workspace/spring-monolith_main"
   commit = "${GIT_COMMIT.substring(0, 8)}"
  }
 
@@ -18,43 +17,35 @@ pipeline {
    }
   }
 
-/*
-  stage('Check Lint') {
+  stage('Linter Run') {
    steps {
-    sh "docker run --rm $registry:${commit} flake7 --ignore=E501,F401,W391"
+    sh "echo lint"
    }
   }
-*/
 
-  stage('Build and test') {
+  stage('Test') {
    steps {
     script {
-     sh "./build-and-test-all.sh"
-     //sh "echo $WORKSPACE"
+     sh "/bin/bash test.sh"
      sh "cd $WORKSPACE/ftgo-application && docker build -t $registry:${commit} ."
-     // dockerImage = docker.build "$registry:${commit} -f /home/vagrant/jenkins/workspace/spring-monolith_main/ftgo-application/Dockerfile"
     }
    }
   }
 
-  /*
- stage('Run Tests') {
-  steps {
-   sh "docker run -v $projectPath/reports:/app/reports  --rm --network='host' $registry:${commit} python martor_demo/manage.py test"
+  stage('Build') {
+   steps {
+    script {
+     sh "/bin/bash build.sh $registry ${commit}"
+    }
+   }
   }
- }*/
 
   stage('Push Image') {
    steps {
     script {
-     //sh "docker push $registry:${commit}"
-     //dockerImage = ""
      docker.withRegistry("", registryCredential) {
       docker.image("$registry:${commit}").push()
      }
-     /*if (isMaster()) {
-
-     }*/
     }
    }
   }
@@ -62,7 +53,7 @@ pipeline {
   stage('Notify Telegram') {
    steps() {
     script {
-     if (isMaster()) {
+     if (ismain()) {
       telegram.sendTelegram("Build successful for ${getBuildName()}\n" +
               "image $registry:${params.RELEASE_TAG} is pushed to DockerHub and ready to be deployed")
      }
@@ -73,26 +64,31 @@ pipeline {
   stage('Garbage Collection') {
    steps {
     script {
-     if (isMaster()) {
+     if (ismain()) {
       sh "docker rmi $registry:${commit}"
      }
     }
    }
   }
 
-  /*
- stage ('Deploy') {
+  stage ('Migrate') {
      steps {
       script {
-       if (isMaster()) {
-        build job: 'django-markdown-deploy', wait: false, parameters: [stringParam(name: 'target', value: "${commit}")]
+        sh "DB_USER=mysqluser HOST_IP=192.168.56.4 DB_PASSWORD=mysqlpw ./gradlew flywayMigrate"
+      }
+    }
+  }
+
+  stage ('Deploy') {
+       steps {
+        script {
+         if (ismain()) {
+          build job: 'spring-monolith-deploy', wait: false, parameters: [stringParam(name: 'target', value: "${commit}")]
+         }
        }
      }
    }
  }
-  */
- }
-
 
  post {
   failure {
@@ -108,18 +104,35 @@ def getBuildName() {
  "${BUILD_NUMBER}_$appName:${commit}"
 }
 
-def isMaster() {
- get_branch_name() == "master"
+def ismain() {
+ get_branch_name() == "main"
 }
 
 def get_branch_name() {
- if (env.GIT_BRANCH.contains("master")) {
-  return "master"
+ if (env.GIT_BRANCH.contains("main")) {
+  return "main"
  } else {
   try {
    return env.GIT_BRANCH.split('/')[-1]
-  } catch(Exception e) {
+ } catch(Exception e) {
    error "Could not find branch name."
   }
  }
+}
+
+def sendTelegram(message) {
+    def encodedMessage = URLEncoder.encode(message, "UTF-8")
+
+    withCredentials([
+    string(credentialsId: 'telegramToken', variable: 'TOKEN'),
+    string(credentialsId: 'telegramChatId', variable: 'CHAT_ID')
+    ]) {
+
+        response = httpRequest (consoleLogResponseBody: true,
+                contentType: 'APPLICATION_JSON',
+                httpMode: 'GET',
+                url: "https://api.telegram.org/bot$TOKEN/sendMessage?text=$encodedMessage&chat_id=$CHAT_ID&parse_mode=html&disable_web_page_preview=true",
+                validResponseCodes: '200')
+        return response
+    }
 }

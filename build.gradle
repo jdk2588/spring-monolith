@@ -36,7 +36,5 @@ subprojects {
         maven {
             url "${project.rootDir}/build/repo"
         }
-
     }
-
 }
