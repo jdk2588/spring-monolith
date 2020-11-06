@@ -76,23 +76,24 @@ pipeline {
    }
   }
 
-  stage ('Migrate') {
-     steps {
-      script {
-        sh "DB_USER=mysqluser HOST_IP=192.168.56.4 DB_PASSWORD=mysqlpw ./gradlew flywayMigrate"
-      }
-    }
-  }
-
   stage ('Deploy') {
        steps {
         script {
          if (ismain()) {
-          build job: 'spring-monolith-deploy', wait: false, parameters: [stringParam(name: 'target', value: "${commit}")]
+          build job: 'spring-monolith-deploy', wait: true, parameters: [stringParam(name: 'target', value: "${commit}")]
          }
        }
      }
    }
+
+  stage ('Migrate') {
+   steps {
+    script {
+     sh "DB_USER=mysqluser HOST_IP=192.168.56.4 DB_PASSWORD=mysqlpw ./gradlew flywayMigrate"
+    }
+   }
+  }
+
  }
 
  post {
