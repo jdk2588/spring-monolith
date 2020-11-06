@@ -89,8 +89,7 @@ pipeline {
   stage ('Migrate') {
    steps {
     script {
-     sh "DB_USER=mysqluser HOST_IP=192.168.56.4 DB_PASSWORD=mysqlpw ./gradlew flywayUndo || DB_USER=mysqluser " +
-             "HOST_IP=192.168.56.4 DB_PASSWORD=mysqlpw ./gradlew flywayMigrate"
+     sh "HOST_IP=192.168.56.4 DB_PASSWORD=mysqlpw ./gradlew flywayMigrate"
     }
    }
   }
